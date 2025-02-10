@@ -37,27 +37,264 @@ class LRUCache {
   }
 }
 
+class MinHeap {
+  constructor() {
+      this.heap = [];
+  }
+
+  getParentIndex(index) {
+      return Math.floor((index - 1) / 2);
+  }
+
+  getLeftChildIndex(index) {
+      return 2 * index + 1;
+  }
+
+  getRightChildIndex(index) {
+      return 2 * index + 2;
+  }
+
+  swap(i, j) {
+      [this.heap[i], this.heap[j]] = [this.heap[j], this.heap[i]];
+  }
+
+  insert(timestamp, key) {
+      this.heap.push({ timestamp, key });
+      this.heapifyUp();
+  }
+
+  heapifyUp() {
+      let index = this.heap.length - 1;
+      while (index > 0) {
+          let parentIndex = this.getParentIndex(index);
+          if (this.heap[index].timestamp < this.heap[parentIndex].timestamp) {
+              this.swap(index, parentIndex);
+              index = parentIndex;
+          } else {
+              break;
+          }
+      }
+  }
+
+  popMin() {
+      if (this.heap.length === 0) return null;
+      if (this.heap.length === 1) return this.heap.pop();
+
+      const min = this.heap[0];
+      this.heap[0] = this.heap.pop();
+      this.heapifyDown();
+      return min;
+  }
+
+  heapifyDown() {
+      let index = 0;
+      let length = this.heap.length;
+
+      while (true) {
+          let leftChildIndex = this.getLeftChildIndex(index);
+          let rightChildIndex = this.getRightChildIndex(index);
+          let smallest = index;
+
+          if (leftChildIndex < length && this.heap[leftChildIndex].timestamp < this.heap[smallest].timestamp) {
+              smallest = leftChildIndex;
+          }
+          if (rightChildIndex < length && this.heap[rightChildIndex].timestamp < this.heap[smallest].timestamp) {
+              smallest = rightChildIndex;
+          }
+
+          if (smallest !== index) {
+              this.swap(index, smallest);
+              index = smallest;
+          } else {
+              break;
+          }
+      }
+  }
+
+  peek() {
+      return this.heap.length > 0 ? this.heap[0] : null;
+  }
+
+  isEmpty() {
+      return this.heap.length === 0;
+  }
+}
+
+class BSTHeap {
+  constructor() {
+      this.timestamps = new Map();
+      this.realObjects = new MinHeap();
+      this.dummyObjects = new MinHeap();
+  }
+
+  setTimestamp(key, ts) {
+      this.timestamps.set(key, ts);
+      this.realObjects.insert(ts, key);
+  }
+
+  getTimestamp(key) {
+      return this.timestamps.get(key) || 0;
+  }
+
+  getMinTimestampObj(type) {
+      if (type === 'dummy') {
+          return this.dummyObjects.peek().key || null;
+      } else {
+          return this.realObjects.peek().key || null;
+      }
+  }
+
+  addObject(key, isDummy) {
+      const ts = this.getTimestamp(key);
+      if (isDummy) {
+          this.dummyObjects.insert(ts, key);
+      } else {
+          this.realObjects.insert(ts, key);
+      }
+  }
+
+  popMin(type) {
+      if (type === 'dummy') {
+          return this.dummyObjects.popMin().key || null;
+      } else {
+          return this.realObjects.popMin().key || null;
+      }
+  }
+}
+
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default_32_byte_secure_key";
 const CACHE_SIZE = 100;
 
 const cache = new LRUCache(CACHE_SIZE);
+const bst = new BSTHeap();
+const BATCH_SIZE = 10;
+const FAKE_DUMMY_COUNT = 3;
+let timestamp = 0;
 
-function encryptKey(key) {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY), iv);
-  let encrypted = cipher.update(key, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  return iv.toString("hex") + ":" + encrypted;
+function getIndex(key, ts) {
+  return crypto.createHash('sha256').update(`${key}:${ts}`).digest('hex');
 }
 
-function decryptKey(encKey) {
-  const [ivHex, encrypted] = encKey.split(":");
-  const iv = Buffer.from(ivHex, "hex");
-  const decipher = crypto.createDecipheriv("aes-256-cbc", Buffer.from(ENCRYPTION_KEY), iv);
-  let decrypted = decipher.update(encrypted, "hex", "utf8");
-  decrypted += decipher.final("utf8");
-  return decrypted;
+async function fetchFromEtcd(key, controller) {
+  try {
+    return await etcd.get(key).string();
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      console.error(`Error fetching key ${key}:`, error);
+    }
+    return null;
+  }
 }
+
+async function handleRequests(requests, etcd) {
+  const cliResp = {};
+  const dedupReqs = new Map();
+  timestamp++;
+
+  try {
+    // Process requests
+    for (const { rid, op, key, val } of requests) {
+      if (!key) continue;
+      
+      if (op === 'read' && cache.has(key)) {
+        cliResp[rid] = cache.get(key);
+      } else {
+        if (!dedupReqs.has(key)) {
+          dedupReqs.set(key, []);
+        }
+        dedupReqs.get(key).push({ rid, need_resp: op === 'read' });
+      }
+
+      if (op === 'write' && val !== undefined) {
+        if (!cache.has(key)) {
+          dedupReqs.get(key).push({ rid, need_resp: false });
+        }
+        cache.set(key, val);
+        cliResp[rid] = val;
+      }
+      
+      bst.addObject(key, false);
+    }
+
+    const readBatch = new Map();
+    for (const [key] of dedupReqs) {
+      const idx = getIndex(key, timestamp);
+      readBatch.set(idx, key);
+      bst.setTimestamp(key, timestamp);
+    }
+
+    for (let i = 0; i < FAKE_DUMMY_COUNT; i++) {
+      const dummyKey = bst.getMinTimestampObj('dummy');
+      if (dummyKey) {
+        const idx = getIndex(dummyKey, timestamp);
+        readBatch.set(idx, dummyKey);
+        bst.setTimestamp(dummyKey, timestamp);
+      }
+    }
+
+    const remainingSlots = BATCH_SIZE - (readBatch.size + FAKE_DUMMY_COUNT);
+    for (let i = 0; i < remainingSlots; i++) {
+      const realKey = bst.getMinTimestampObj('real');
+      if (realKey && !cache.has(realKey)) {
+        const idx = getIndex(realKey, timestamp);
+        readBatch.set(idx, realKey);
+        bst.setTimestamp(realKey, timestamp);
+      }
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const responses = await Promise.all(
+      Array.from(readBatch.entries()).map(async ([idx, key]) => {
+        const val = await fetchFromEtcd(key, controller);
+        return { idx, val };
+      })
+    );
+
+    clearTimeout(timeout);
+
+    const writeBatch = new Map();
+    for (const { idx, val } of responses) {
+      if (!val) continue;
+      
+      const key = readBatch.get(idx);
+      if (!key) continue;
+      
+      if (dedupReqs.has(key)) {
+        for (const { rid, need_resp } of dedupReqs.get(key)) {
+          if (need_resp) {
+            cliResp[rid] = val;
+          }
+        }
+
+        if (objectIsReal(key)) {
+          const [evictedKey, evictedVal] = cache.evict();
+          if (evictedKey) {
+            writeBatch.set(getIndex(evictedKey, timestamp), evictedVal);
+          }
+          cache.set(key, val);
+        }
+      } else {
+        writeBatch.set(getIndex(key, timestamp), null);
+      }
+    }
+
+    await Promise.all(
+      Array.from(writeBatch.entries()).map(([idx, val]) =>
+        etcd.put(idx).value(val || '')
+      )
+    );
+
+  } catch (error) {
+    console.error('Error in handleRequests:', error);
+  }
+
+  return cliResp;
+}
+
+const app = express();
+app.use(bodyParser.json());
 
 const etcd = new Etcd3({
   hosts: "https://localhost:2379",
@@ -68,85 +305,20 @@ const etcd = new Etcd3({
   },
 });
 
-// FIX so that it calls from dummy BST, NOT random
-function generateDummyRequests(numDummyRequests) {
-  const dummies = {};
-  for (let i = 0; i < numDummyRequests; i++) {
-    const dummyKey = `dummy_${crypto.randomBytes(8).toString('hex')}`;
-    dummies[encryptKey(dummyKey)] = crypto.randomBytes(16).toString('hex');
-  }
-  return dummies;
+// Initialize dummy objects
+for (let i = 0; i < 100; i++) {
+  const dummyKey = `dummy_${i}`;
+  bst.addObject(dummyKey, true);
 }
 
-async function processBatchWithCache(realRequests) {
-  
-  // Process responses and update cache
-  const cliResp = {};
-  const dedupReqs = {}
-
-  // Check cache first
-  for (const [key, reqs] of Object.entries(realRequests)) {
-    const encKey = encryptKey(key);
-    const cachedValue = cache.get(encKey);
-    
-    if (cachedValue) {
-      cacheHits[key] = { value: cachedValue, requests: reqs };
-    } else {
-      needsFetch[encKey] = { key, requests: reqs };
-      dedupReqs[encKey] = null;
-    }
-  }
-
-  // // Fetch missing values from etcd
-  // const responses = await Promise.all(
-  //   Object.keys(dedupReqs).map(async (encKey) => {
-  //     const value = await etcd.get(encKey).string();
-  //     return { encKey, value };
-  //   })
-  // );
-
-  // Handle cache hits
-  Object.entries(cacheHits).forEach(([key, { value, requests }]) => {
-    requests.forEach(({ rid, need_resp }) => {
-      if (need_resp) cliResp[rid] = value;
-    });
-  });
-
-  // Handle fetched values
-  responses.forEach(({ encKey, value }) => {
-    if (needsFetch[encKey]) {
-      const { key, requests } = needsFetch[encKey];
-      if (value) {
-        cache.put(encKey, value);
-        requests.forEach(({ rid, need_resp }) => {
-          if (need_resp) cliResp[rid] = value;
-        });
-      }
-    }
-  });
-
-  return cliResp;
-}
-
-const app = express();
-app.use(bodyParser.json());
-
-app.post("/", async (req, res) => {
-  const { rid, op, key, val } = req.body;
-  const dedupReqs = {};
-
-  if (op === "read") {
-    dedupReqs[key] = [{ rid, need_resp: true }];
-    const responses = await processBatchWithCache(dedupReqs);
+app.all("/", async (req, res) => {
+  try {
+    const responses = await handleRequests([req.body], etcd);
     res.json(responses);
-  } else if (op === "write") {
-    const encKey = encryptKey(key);
-    await etcd.put(encKey).value(val);
-    cache.put(encKey, val);
-    res.json({ [rid]: val });
+  } catch (error) {
+    console.error('Request handler error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.listen(5000, () => {
-  console.log("Secure Proxy server running on port 5000");
-});
+app.listen(5000, () => console.log("Waffle-style proxy running on port 5000"));
