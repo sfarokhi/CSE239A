@@ -301,13 +301,16 @@ const app = express();
 app.use(bodyParser.json());
 
 const etcd = new Etcd3({
-  hosts: "https://localhost:2379",
+  hosts: "http://localhost:2378",
 //   credentials: {
 //     rootCertificate: fs.readFileSync("ca.pem"),
 //     privateKey: fs.readFileSync("client-key.pem"),
 //     certChain: fs.readFileSync("client.pem"),
 //   },
 });
+
+console.log(etcd.put("test", "foo"));
+console.log(etcd.get("test"));
 
 // Initialize dummy objects
 for (let i = 0; i < 100; i++) {

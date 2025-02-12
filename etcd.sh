@@ -1,21 +1,11 @@
 #!/bin/bash
 etcd \
---advertise-client-urls=https://192.168.65.3:2379 \
---cert-file=/run/config/pki/etcd/server.crt \
---client-cert-auth=true \
---data-dir=/var/lib/etcd \
---experimental-initial-corrupt-check=true \
---experimental-watch-progress-notify-interval=5s \
---initial-advertise-peer-urls=https://192.168.65.3:2380 \
---initial-cluster=docker-desktop=https://192.168.65.3:2380 \
---key-file=/run/config/pki/etcd/server.key \
---listen-client-urls=https://127.0.0.1:2379,https://192.168.65.3:2379 \
---listen-metrics-urls=http://127.0.0.1:2381 \
---listen-peer-urls=https://192.168.65.3:2380 \
---name=docker-desktop \
---peer-cert-file=/run/config/pki/etcd/peer.crt \
---peer-client-cert-auth=true \
---peer-key-file=/run/config/pki/etcd/peer.key \
---peer-trusted-ca-file=/run/config/pki/etcd/ca.crt \
---snapshot-count=10000 \
---trusted-ca-file=/run/config/pki/etcd/ca.crt
+  --name=etcd-local \
+  --client-cert-auth=false \
+  --peer-client-cert-auth=false \
+  --listen-client-urls=http://127.0.0.1:2378 \
+  --advertise-client-urls=http://127.0.0.1:2378 \
+  --listen-peer-urls=http://127.0.0.1:2381 \
+  --initial-advertise-peer-urls=http://127.0.0.1:2381 \
+  --initial-cluster=etcd-local=http://127.0.0.1:2381 \
+  --snapshot-count=10000
