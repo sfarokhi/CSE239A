@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const crypto = require("crypto");
 const fs = require("fs");
+const { AbortController } = require('abort-controller');
 const { Etcd3 } = require("etcd3");
 
 // LRU Cache implementation
@@ -162,17 +163,20 @@ class BSTHeap {
   }
 }
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default_32_byte_secure_key";
-const CACHE_SIZE = 100;
+// Define the bounds of the proxy
+// B -> BATCH_SIZE
+// fD -> FAKE_DUMMY_COUNT
+const CACHE_SIZE = 20;
+const BATCH_SIZE = 20;
+const FAKE_DUMMY_COUNT = 5;
 
 const cache = new LRUCache(CACHE_SIZE);
 const bst = new BSTHeap();
-const BATCH_SIZE = 10;
-const FAKE_DUMMY_COUNT = 3;
 let timestamp = 0;
 
+// Uses a PRF to encrypt the key, using the timestamp
 function getIndex(key, ts) {
-  return crypto.createHash('sha256').update(`${key}:${ts}`).digest('hex');
+  return crypto.createHmac('sha256', key).update(ts).digest('hex');
 }
 
 async function fetchFromEtcd(key, controller) {
@@ -298,11 +302,11 @@ app.use(bodyParser.json());
 
 const etcd = new Etcd3({
   hosts: "https://localhost:2379",
-  credentials: {
-    rootCertificate: fs.readFileSync("ca.pem"),
-    privateKey: fs.readFileSync("client-key.pem"),
-    certChain: fs.readFileSync("client.pem"),
-  },
+//   credentials: {
+//     rootCertificate: fs.readFileSync("ca.pem"),
+//     privateKey: fs.readFileSync("client-key.pem"),
+//     certChain: fs.readFileSync("client.pem"),
+//   },
 });
 
 // Initialize dummy objects
@@ -321,4 +325,4 @@ app.all("/", async (req, res) => {
   }
 });
 
-app.listen(5000, () => console.log("Waffle-style proxy running on port 5000"));
+app.listen(5000, () => console.log("Proxy running on port 5000"));
