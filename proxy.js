@@ -5,36 +5,38 @@ const fs = require("fs");
 const { AbortController } = require('abort-controller');
 const { Etcd3 } = require("etcd3");
 
-// LRU Cache implementation
 class LRUCache {
   constructor(capacity) {
     this.capacity = capacity;
     this.cache = new Map();
   }
 
+  has(key) {
+    return this.cache.has(key);
+  }
+
   get(key) {
     if (!this.cache.has(key)) return null;
     const value = this.cache.get(key);
-    this.cache.delete(key);
-    this.cache.set(key, value);
+    // this.cache.delete(key);
+    // this.cache.set(key, value);
     return value;
   }
 
-  put(key, value) {
-    if (this.cache.has(key)) {
-      this.cache.delete(key);
-    } else if (this.cache.size >= this.capacity) {
+  set(key, value) {
+
+    if (this.cache.size >= this.capacity) {
       this.cache.delete(this.cache.keys().next().value);
     }
     this.cache.set(key, value);
   }
 
-  clear() {
-    this.cache.clear();
-  }
-
-  getAll() {
-    return Array.from(this.cache.entries());
+  evict() {
+    if (this.cache.size === 0) return [null, null];
+    const key = this.cache.keys().next().value;
+    const value = this.cache.get(key);
+    this.cache.delete(key);
+    return [key, value];
   }
 }
 
@@ -60,8 +62,11 @@ class MinHeap {
   }
 
   insert(timestamp, key) {
+    const dupIndex = !this.heap.findIndex((obj) => obj.key === key); 
+    if (!dupIndex) {
       this.heap.push({ timestamp, key });
       this.heapifyUp();
+    }
   }
 
   heapifyUp() {
@@ -113,6 +118,7 @@ class MinHeap {
   }
 
   peek() {
+      console.log('Heap:', this.heap);
       return this.heap.length > 0 ? this.heap[0] : null;
   }
 
@@ -128,38 +134,34 @@ class BSTHeap {
       this.dummyObjects = new MinHeap();
   }
 
-  setTimestamp(key, ts) {
-      this.timestamps.set(key, ts);
+  setTimestamp(key, ts, isDummy) {
+    this.timestamps.set(key, ts);
+    if (isDummy === 'dummy') {
+      this.dummyObjects.insert(ts, key);
+    } else {
       this.realObjects.insert(ts, key);
+    }
   }
 
   getTimestamp(key) {
       return this.timestamps.get(key) || 0;
   }
 
-  getMinTimestampObj(type) {
-      if (type === 'dummy') {
-          return this.dummyObjects.peek().key || null;
-      } else {
-          return this.realObjects.peek().key || null;
-      }
-  }
-
-  addObject(key, isDummy) {
-      const ts = this.getTimestamp(key);
-      if (isDummy) {
-          this.dummyObjects.insert(ts, key);
-      } else {
-          this.realObjects.insert(ts, key);
-      }
-  }
-
-  popMin(type) {
-      if (type === 'dummy') {
+  popMin(isDummy) {
+      if (isDummy === 'dummy') {
           return this.dummyObjects.popMin().key || null;
       } else {
           return this.realObjects.popMin().key || null;
       }
+  }
+
+  addObject(key, isDummy) {
+    const ts = this.getTimestamp(key);
+    if (isDummy === 'dummy') {
+        this.dummyObjects.insert(ts, key);
+    } else {
+        this.realObjects.insert(ts, key);
+    }
   }
 }
 
@@ -168,15 +170,19 @@ class BSTHeap {
 // fD -> FAKE_DUMMY_COUNT
 const CACHE_SIZE = 20;
 const BATCH_SIZE = 20;
-const FAKE_DUMMY_COUNT = 5;
+const FAKE_DUMMY_COUNT = 10;
 
 const cache = new LRUCache(CACHE_SIZE);
 const bst = new BSTHeap();
 let timestamp = 0;
 
+function objectIsReal(key) {
+  return !key.startsWith('dummy_');
+}
+
 // Uses a PRF to encrypt the key, using the timestamp
 function getIndex(key, ts) {
-  return crypto.createHmac('sha256', key).update(ts).digest('hex');
+  return crypto.createHmac('sha256', key).update(ts.toString()).digest('hex');
 }
 
 async function fetchFromEtcd(key, controller) {
@@ -200,54 +206,79 @@ async function handleRequests(requests, etcd) {
     for (const { rid, op, key, val } of requests) {
       if (!key) continue;
       
-      if (op === 'read' && cache.has(key)) {
-        cliResp[rid] = cache.get(key);
-      } else {
-        if (!dedupReqs.has(key)) {
-          dedupReqs.set(key, []);
+      // Read request
+      if (op === 'read') {
+
+        if (cache.has(key)) {
+          console.log('Cache Hit:', key);
+          cliResp[rid] = cache.get(key);
+          
+        } else {
+          if (!dedupReqs.has(key)) {
+            dedupReqs.set(key, []);
+          }
+          dedupReqs.get(key).push({ rid, need_resp: op === 'read' });
         }
-        dedupReqs.get(key).push({ rid, need_resp: op === 'read' });
+
+        bst.addObject(key, 'real');
       }
 
       if (op === 'write' && val !== undefined) {
         if (!cache.has(key)) {
+          if (!dedupReqs.has(key)) {
+            dedupReqs.set(key, []);
+          }
           dedupReqs.get(key).push({ rid, need_resp: false });
         }
         cache.set(key, val);
         cliResp[rid] = val;
+        bst.addObject(key, 'real');
       }
-      
-      bst.addObject(key, false);
     }
 
+    // Initialize the read batch, with dedup requests
     const readBatch = new Map();
     for (const [key] of dedupReqs) {
       const idx = getIndex(key, timestamp);
       readBatch.set(idx, key);
-      bst.setTimestamp(key, timestamp);
+      bst.setTimestamp(key, timestamp, 'real');
+      console.log('Added dedup key:', key);
     }
 
-    for (let i = 0; i < FAKE_DUMMY_COUNT; i++) {
-      const dummyKey = bst.getMinTimestampObj('dummy');
+    // Fill the read batch with fake dummy objects
+    for (let i = 0; i < readBatch.size; i++) {
+      const dummyKey = bst.popMin('dummy');
       if (dummyKey) {
+        console.log('Dummy key:', dummyKey);
+        console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
+
         const idx = getIndex(dummyKey, timestamp);
         readBatch.set(idx, dummyKey);
-        bst.setTimestamp(dummyKey, timestamp);
+        bst.setTimestamp(dummyKey, timestamp, 'dummy');
+        console.log('Added dummy key:', dummyKey);
       }
     }
 
-    const remainingSlots = BATCH_SIZE - (readBatch.size + FAKE_DUMMY_COUNT);
+    const remainingSlots = BATCH_SIZE - (readBatch.size * 2);
     for (let i = 0; i < remainingSlots; i++) {
-      const realKey = bst.getMinTimestampObj('real');
+      const realKey = bst.popMin('real');
       if (realKey && !cache.has(realKey)) {
         const idx = getIndex(realKey, timestamp);
         readBatch.set(idx, realKey);
-        bst.setTimestamp(realKey, timestamp);
+        bst.setTimestamp(realKey, timestamp, 'real');
+        console.log('Added real key:', realKey);
+      } else {
+        console.log('No more real objects to read');
+        break;
       }
     }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
+
+    console.log('Dedup requests:', dedupReqs);
+    console.log('Read batch:', readBatch);
+
 
     const responses = await Promise.all(
       Array.from(readBatch.entries()).map(async ([idx, key]) => {
@@ -309,18 +340,23 @@ const etcd = new Etcd3({
 //   },
 });
 
-console.log(etcd.put("test", "foo"));
-console.log(etcd.get("test"));
+// console.log(etcd.put("test", "foo"));
+// console.log(etcd.get("test"));
 
 // Initialize dummy objects
 for (let i = 0; i < 100; i++) {
   const dummyKey = `dummy_${i}`;
-  bst.addObject(dummyKey, true);
+  bst.addObject(dummyKey, 'dummy');
 }
+
+// console.log("Dummy objects initialized");
+// console.log(bst.realObjects.heap);
+// console.log(bst.dummyObjects.heap);
 
 app.all("/", async (req, res) => {
   try {
-    const responses = await handleRequests([req.body], etcd);
+    // console.log("Received request:", req);
+    const responses = await handleRequests(req.body, etcd);
     res.json(responses);
   } catch (error) {
     console.error('Request handler error:', error);
