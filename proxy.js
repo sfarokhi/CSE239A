@@ -202,6 +202,11 @@ async function handleRequests(requests, etcd) {
   timestamp++;
 
   try {
+
+    if (!Array.isArray(requests)) {
+      return cliResp;
+    }
+
     // Process requests
     for (const { rid, op, key, val } of requests) {
       if (!key) continue;
@@ -245,8 +250,8 @@ async function handleRequests(requests, etcd) {
       console.log('Added dedup key:', key);
     }
 
-    // Fill the read batch with fake dummy objects
-    for (let i = 0; i < readBatch.size; i++) {
+    // Fill the read batch with fake dummy queries
+    for (let i = 0; i < FAKE_DUMMY_COUNT; i++) {
       const dummyKey = bst.popMin('dummy');
       if (dummyKey) {
         console.log('Dummy key:', dummyKey);
@@ -258,8 +263,8 @@ async function handleRequests(requests, etcd) {
         console.log('Added dummy key:', dummyKey);
       }
     }
-
-    const remainingSlots = BATCH_SIZE - (readBatch.size * 2);
+    
+    const remainingSlots = BATCH_SIZE - readBatch.size;
     for (let i = 0; i < remainingSlots; i++) {
       const realKey = bst.popMin('real');
       if (realKey && !cache.has(realKey)) {

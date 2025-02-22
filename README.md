@@ -18,6 +18,7 @@ node proxy.sh
 
 ## GET/PUT Request
 ```
-curl -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '{"rid": "1", "op": "read", "key": "foo"}'
-curl -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '{"rid": "1", "op": "write", "key": "foo", "val": "bar"}'
+curl -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '[{"rid": "1", "op": "read", "key": "foo"}]'
+curl -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '[{"rid": "1", "op": "read", "key": "foo"},{"rid": "2", "op": "read", "key": "bar"}]'
+curl -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '[{"rid": "1", "op": "write", "key": "foo", "val": "bar"}]'
 ```
