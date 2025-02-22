@@ -118,7 +118,6 @@ class MinHeap {
   }
 
   peek() {
-      console.log('Heap:', this.heap);
       return this.heap.length > 0 ? this.heap[0] : null;
   }
 
@@ -168,9 +167,9 @@ class BSTHeap {
 // Define the bounds of the proxy
 // B -> BATCH_SIZE
 // fD -> FAKE_DUMMY_COUNT
-const CACHE_SIZE = 20;
+const CACHE_SIZE = 5;
 const BATCH_SIZE = 20;
-const FAKE_DUMMY_COUNT = 10;
+const FAKE_DUMMY_COUNT = 5;
 
 const cache = new LRUCache(CACHE_SIZE);
 const bst = new BSTHeap();
@@ -196,6 +195,18 @@ async function fetchFromEtcd(key, controller) {
   }
 }
 
+async function writeToEtcd(key, val, controller) {
+  try {
+    return await etcd.put(key, val).string();
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      console.error(`Error writing ${key}:`, error);
+    }
+    return null;
+  }
+}
+
+
 async function handleRequests(requests, etcd) {
   const cliResp = {};
   const dedupReqs = new Map();
@@ -215,14 +226,14 @@ async function handleRequests(requests, etcd) {
       if (op === 'read') {
 
         if (cache.has(key)) {
-          console.log('Cache Hit:', key);
+          // console.log('Cache Hit:', key);
           cliResp[rid] = cache.get(key);
           
         } else {
           if (!dedupReqs.has(key)) {
             dedupReqs.set(key, []);
           }
-          dedupReqs.get(key).push({ rid, need_resp: op === 'read' });
+          dedupReqs.get(key).push({ rid, need_resp: true });
         }
 
         bst.addObject(key, 'real');
@@ -236,7 +247,7 @@ async function handleRequests(requests, etcd) {
           dedupReqs.get(key).push({ rid, need_resp: false });
         }
         cache.set(key, val);
-        cliResp[rid] = val;
+        // cliResp[rid] = val;
         bst.addObject(key, 'real');
       }
     }
@@ -247,20 +258,20 @@ async function handleRequests(requests, etcd) {
       const idx = getIndex(key, timestamp);
       readBatch.set(idx, key);
       bst.setTimestamp(key, timestamp, 'real');
-      console.log('Added dedup key:', key);
+      // console.log('Added dedup key:', key);
     }
 
     // Fill the read batch with fake dummy queries
     for (let i = 0; i < FAKE_DUMMY_COUNT; i++) {
       const dummyKey = bst.popMin('dummy');
       if (dummyKey) {
-        console.log('Dummy key:', dummyKey);
-        console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
+        // console.log('Dummy key:', dummyKey);
+        // console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
 
         const idx = getIndex(dummyKey, timestamp);
         readBatch.set(idx, dummyKey);
         bst.setTimestamp(dummyKey, timestamp, 'dummy');
-        console.log('Added dummy key:', dummyKey);
+        // console.log('Added dummy key:', dummyKey);
       }
     }
     
@@ -271,9 +282,9 @@ async function handleRequests(requests, etcd) {
         const idx = getIndex(realKey, timestamp);
         readBatch.set(idx, realKey);
         bst.setTimestamp(realKey, timestamp, 'real');
-        console.log('Added real key:', realKey);
+        // console.log('Added real key:', realKey);
       } else {
-        console.log('No more real objects to read');
+        // console.log('No more real objects to read');
         break;
       }
     }
@@ -282,7 +293,7 @@ async function handleRequests(requests, etcd) {
     const timeout = setTimeout(() => controller.abort(), 5000);
 
     console.log('Dedup requests:', dedupReqs);
-    console.log('Read batch:', readBatch);
+    // console.log('Read batch:', readBatch);
 
 
     const responses = await Promise.all(
@@ -304,6 +315,7 @@ async function handleRequests(requests, etcd) {
       if (dedupReqs.has(key)) {
         for (const { rid, need_resp } of dedupReqs.get(key)) {
           if (need_resp) {
+            console.log('Response:', rid, val);
             cliResp[rid] = val;
           }
         }
@@ -314,15 +326,17 @@ async function handleRequests(requests, etcd) {
             writeBatch.set(getIndex(evictedKey, timestamp), evictedVal);
           }
           cache.set(key, val);
+        } else {
+          writeBatch.set(getIndex(key, timestamp), null);
         }
-      } else {
-        writeBatch.set(getIndex(key, timestamp), null);
+
+
       }
     }
 
     await Promise.all(
       Array.from(writeBatch.entries()).map(([idx, val]) =>
-        etcd.put(idx).value(val || '')
+        writeToEtcd(idx, val || '', controller)
       )
     );
 
