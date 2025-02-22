@@ -1,6 +1,8 @@
-# CSE239A
+# CSE239A: Locker
 
-## Ismail Ahmed Sallar Farokhi
+Locker © 2025 by Sallar Farokhi, Ismail Ahmed is licensed under Creative Commons Attribution 4.0 International 
+
+## Ismail Ahmed & Sallar Farokhi
 
 ## Add to bashrc
 ```
