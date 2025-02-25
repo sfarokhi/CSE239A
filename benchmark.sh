@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# The performance benchmarking requires `bc` to be installed locally
+start=$(date +%s.%N)
+
 # Number of requests to send
 NUM_REQUESTS=10
 
@@ -31,3 +34,9 @@ for ((i=1; i<=NUM_REQUESTS; i++)); do
     sleep 1 # Optional delay between requests
 
 done
+
+
+# Highly accurate performance benchmarking in seconds
+end=$(date +%s.%N)
+runtime=$(echo $end - $start | bc)
+echo "The benchmark's runtime was $runtime seconds."
