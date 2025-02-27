@@ -1,0 +1,9 @@
+Benchmark data log
+
+======= Request 1 =======
+Batch size: 8
+Data: [{"rid":"user7","op":"read","key":"Tacoma","val":"UnU="},{"rid":"user10","op":"read","key":"Huntsville","val":"QkI1"},{"rid":"user4","op":"read","key":"Hayward","val":"Uw=="},{"rid":"user8","op":"read","key":"Columbia","val":"RzBi"},{"rid":"user2","op":"read","key":"Spokane","val":"WEwy"},{"rid":"user3","op":"read","key":"Murfreesboro","val":"MQ=="},{"rid":"user1","op":"read","key":"Little Rock","val":"Zw=="},{"rid":"user4","op":"read","key":"San Diego","val":"TDQ="}]
+Dedup requests: Tacoma, Huntsville, Hayward, Columbia, Spokane, Murfreesboro, Little Rock, San Diego
+Read batch: Tacoma, Huntsville, Hayward, Columbia, Spokane, Murfreesboro, Little Rock, San Diego, dummy_0, dummy_99, dummy_1, dummy_3, dummy_7, dummy_15, dummy_31, dummy_63, dummy_64, dummy_32, dummy_65, dummy_66, dummy_16, dummy_33, dummy_67, dummy_68, dummy_34, dummy_69, dummy_70, dummy_8, dummy_17, dummy_35, dummy_71, dummy_72, dummy_36, dummy_73, dummy_74, dummy_18, dummy_37, dummy_75, dummy_76, dummy_38, dummy_77, dummy_78, dummy_4, dummy_9, dummy_19, dummy_39, dummy_79, dummy_80, dummy_40, dummy_81
+Response: {}
+Runtime: 1.452998786 seconds

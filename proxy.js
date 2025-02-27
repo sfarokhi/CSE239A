@@ -4,6 +4,12 @@ const crypto = require("crypto");
 const fs = require("fs");
 const { AbortController } = require('abort-controller');
 const { Etcd3 } = require("etcd3");
+const { log } = require("console");
+
+// Function to log to file
+function logToFile(message, filePath = 'data.txt') {
+  fs.appendFileSync(filePath, message + '\n');
+}
 
 class LRUCache {
   constructor(capacity) {
@@ -167,9 +173,10 @@ class BSTHeap {
 // Define the bounds of the proxy
 // B -> BATCH_SIZE
 // fD -> FAKE_DUMMY_COUNT
-const CACHE_SIZE = 5;
-const BATCH_SIZE = 20;
-const FAKE_DUMMY_COUNT = 5;
+const CACHE_SIZE = 10;
+const BATCH_SIZE = 50;
+const FAKE_DUMMY_COUNT = 25;
+const TOTAL_DUMMIES = 100;
 
 const cache = new LRUCache(CACHE_SIZE);
 const bst = new BSTHeap();
@@ -226,7 +233,8 @@ async function handleRequests(requests, etcd) {
       if (op === 'read') {
 
         if (cache.has(key)) {
-          // console.log('Cache Hit:', key);
+          
+          console.log('Cache Hit:', key);
           cliResp[rid] = cache.get(key);
           
         } else {
@@ -261,39 +269,64 @@ async function handleRequests(requests, etcd) {
       // console.log('Added dedup key:', key);
     }
 
-    // Fill the read batch with fake dummy queries
-    for (let i = 0; i < FAKE_DUMMY_COUNT; i++) {
-      const dummyKey = bst.popMin('dummy');
-      if (dummyKey) {
-        // console.log('Dummy key:', dummyKey);
-        // console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
+    // // Fill the read batch with fake dummy queries
+    // for (let i = 0; i < FAKE_DUMMY_COUNT; i++) {
+    //   const dummyKey = bst.popMin('dummy');
+    //   if (dummyKey) {
+    //     // console.log('Dummy key:', dummyKey);
+    //     // console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
 
-        const idx = getIndex(dummyKey, timestamp);
-        readBatch.set(idx, dummyKey);
-        bst.setTimestamp(dummyKey, timestamp, 'dummy');
-        // console.log('Added dummy key:', dummyKey);
-      }
-    }
+    //     const idx = getIndex(dummyKey, timestamp);
+    //     readBatch.set(idx, dummyKey);
+    //     bst.setTimestamp(dummyKey, timestamp, 'dummy');
+    //     // console.log('Added dummy key:', dummyKey);
+    //   }
+    // }
     
     const remainingSlots = BATCH_SIZE - readBatch.size;
     for (let i = 0; i < remainingSlots; i++) {
+
       const realKey = bst.popMin('real');
+      bst.setTimestamp(realKey, timestamp, 'real');
+      console.log('Real key:', realKey);
+
       if (realKey && !cache.has(realKey)) {
         const idx = getIndex(realKey, timestamp);
         readBatch.set(idx, realKey);
-        bst.setTimestamp(realKey, timestamp, 'real');
-        // console.log('Added real key:', realKey);
+        console.log('Added real key:');
       } else {
-        // console.log('No more real objects to read');
-        break;
+        console.log('No more real objects to read');
+        continue;
       }
     }
+
+    // if (readBatch.size !== BATCH_SIZE) {
+    //   console.log('Read batch size is not equal to BATCH_SIZE:', readBatch.size);
+    //   // Fill the read batch with fake dummy queries
+    //   const remainingSlots = BATCH_SIZE - readBatch.size;
+    //   for (let i = 0; i < remainingSlots; i++) {
+    //     const dummyKey = bst.popMin('dummy');
+    //     if (dummyKey) {
+    //       // console.log('Dummy key:', dummyKey);
+    //       // console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
+
+    //       const idx = getIndex(dummyKey, timestamp);
+    //       readBatch.set(idx, dummyKey);
+    //       bst.setTimestamp(dummyKey, timestamp, 'dummy');
+    //       // console.log('Added dummy key:', dummyKey);
+    //     }
+    //   }
+    // }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
 
-    console.log('Dedup requests:', dedupReqs);
+    // console.log('Dedup requests:', dedupReqs);
     // console.log('Read batch:', readBatch);
+    // console.log("\n");
+
+    logToFile(`Dedup requests: ${Array.from(dedupReqs.keys()).join(', ')}`);
+    logToFile(`Read batch: ${Array.from(readBatch.values()).join(', ')}`);
 
 
     const responses = await Promise.all(
@@ -363,7 +396,7 @@ const etcd = new Etcd3({
 // console.log(etcd.get("test"));
 
 // Initialize dummy objects
-for (let i = 0; i < 100; i++) {
+for (let i = 0; i < TOTAL_DUMMIES; i++) {
   const dummyKey = `dummy_${i}`;
   bst.addObject(dummyKey, 'dummy');
 }
