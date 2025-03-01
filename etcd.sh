@@ -1,3 +1,4 @@
+# DEPERCIATED, USED FOR FUTURE Kubernetes support
 #!/bin/bash
 etcd \
  --name=etcd-local \

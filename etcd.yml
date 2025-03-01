@@ -1,4 +1,5 @@
 # file: etcd.yaml
+# DEPERCIATED, USED FOR FUTURE Kubernetes support
 ---
 apiVersion: v1
 kind: Service

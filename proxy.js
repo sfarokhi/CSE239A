@@ -24,8 +24,6 @@ class LRUCache {
   get(key) {
     if (!this.cache.has(key)) return null;
     const value = this.cache.get(key);
-    // this.cache.delete(key);
-    // this.cache.set(key, value);
     return value;
   }
 
@@ -173,10 +171,10 @@ class BSTHeap {
 // Define the bounds of the proxy
 // B -> BATCH_SIZE
 // fD -> FAKE_DUMMY_COUNT
-const CACHE_SIZE = 10;
-const BATCH_SIZE = 50;
-const FAKE_DUMMY_COUNT = 25;
-const TOTAL_DUMMIES = 100;
+const CACHE_SIZE = 10; // IT SHOULD BE AROUND 10-25% OF FAKE_DUMMY_REQUEST FOR PERFORMANCE REASONS
+const BATCH_SIZE = 50; // THIS IS ALWAYS FAKE_DUMMY_REQUEST * 2
+const FAKE_DUMMY_COUNT = 25; // ALWAYS HAS TO BE AT LEAST HALF OF THE BATCH SIZE FOR SECURITY REASONS
+const TOTAL_DUMMIES = 100; // ALWAYS HAS TO BE AT LEAST DOUBLE OF FAKE_DUMMY_COUNT FOR SECURITY REASONS
 
 const cache = new LRUCache(CACHE_SIZE);
 const bst = new BSTHeap();
@@ -234,7 +232,7 @@ async function handleRequests(requests, etcd) {
 
         if (cache.has(key)) {
           
-          console.log('Cache Hit:', key);
+          // console.log('Cache Hit:', key);
           cliResp[rid] = cache.get(key);
           
         } else {
@@ -255,7 +253,6 @@ async function handleRequests(requests, etcd) {
           dedupReqs.get(key).push({ rid, need_resp: false });
         }
         cache.set(key, val);
-        // cliResp[rid] = val;
         bst.addObject(key, 'real');
       }
     }
@@ -266,64 +263,27 @@ async function handleRequests(requests, etcd) {
       const idx = getIndex(key, timestamp);
       readBatch.set(idx, key);
       bst.setTimestamp(key, timestamp, 'real');
-      // console.log('Added dedup key:', key);
     }
-
-    // // Fill the read batch with fake dummy queries
-    // for (let i = 0; i < FAKE_DUMMY_COUNT; i++) {
-    //   const dummyKey = bst.popMin('dummy');
-    //   if (dummyKey) {
-    //     // console.log('Dummy key:', dummyKey);
-    //     // console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
-
-    //     const idx = getIndex(dummyKey, timestamp);
-    //     readBatch.set(idx, dummyKey);
-    //     bst.setTimestamp(dummyKey, timestamp, 'dummy');
-    //     // console.log('Added dummy key:', dummyKey);
-    //   }
-    // }
     
     const remainingSlots = BATCH_SIZE - readBatch.size;
     for (let i = 0; i < remainingSlots; i++) {
 
       const realKey = bst.popMin('real');
       bst.setTimestamp(realKey, timestamp, 'real');
-      console.log('Real key:', realKey);
+      // console.log('Real key:', realKey);
 
       if (realKey && !cache.has(realKey)) {
         const idx = getIndex(realKey, timestamp);
         readBatch.set(idx, realKey);
-        console.log('Added real key:');
+        // console.log('Added real key:');
       } else {
-        console.log('No more real objects to read');
+        // console.log('No more real objects to read');
         continue;
       }
     }
 
-    // if (readBatch.size !== BATCH_SIZE) {
-    //   console.log('Read batch size is not equal to BATCH_SIZE:', readBatch.size);
-    //   // Fill the read batch with fake dummy queries
-    //   const remainingSlots = BATCH_SIZE - readBatch.size;
-    //   for (let i = 0; i < remainingSlots; i++) {
-    //     const dummyKey = bst.popMin('dummy');
-    //     if (dummyKey) {
-    //       // console.log('Dummy key:', dummyKey);
-    //       // console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
-
-    //       const idx = getIndex(dummyKey, timestamp);
-    //       readBatch.set(idx, dummyKey);
-    //       bst.setTimestamp(dummyKey, timestamp, 'dummy');
-    //       // console.log('Added dummy key:', dummyKey);
-    //     }
-    //   }
-    // }
-
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-
-    // console.log('Dedup requests:', dedupReqs);
-    // console.log('Read batch:', readBatch);
-    // console.log("\n");
 
     logToFile(`Dedup requests: ${Array.from(dedupReqs.keys()).join(', ')}`);
     logToFile(`Read batch: ${Array.from(readBatch.values()).join(', ')}`);
@@ -348,7 +308,7 @@ async function handleRequests(requests, etcd) {
       if (dedupReqs.has(key)) {
         for (const { rid, need_resp } of dedupReqs.get(key)) {
           if (need_resp) {
-            console.log('Response:', rid, val);
+            // console.log('Response:', rid, val);
             cliResp[rid] = val;
           }
         }
@@ -384,16 +344,9 @@ const app = express();
 app.use(bodyParser.json());
 
 const etcd = new Etcd3({
-  hosts: "http://localhost:2378",
-//   credentials: {
-//     rootCertificate: fs.readFileSync("ca.pem"),
-//     privateKey: fs.readFileSync("client-key.pem"),
-//     certChain: fs.readFileSync("client.pem"),
-//   },
+  hosts: "http://localhost:2379", // Following the default etcd port
+  // hosts: "http://localhost:2378", // For later Kubernetes support
 });
-
-// console.log(etcd.put("test", "foo"));
-// console.log(etcd.get("test"));
 
 // Initialize dummy objects
 for (let i = 0; i < TOTAL_DUMMIES; i++) {
@@ -401,13 +354,8 @@ for (let i = 0; i < TOTAL_DUMMIES; i++) {
   bst.addObject(dummyKey, 'dummy');
 }
 
-// console.log("Dummy objects initialized");
-// console.log(bst.realObjects.heap);
-// console.log(bst.dummyObjects.heap);
-
 app.all("/", async (req, res) => {
   try {
-    // console.log("Received request:", req);
     const responses = await handleRequests(req.body, etcd);
     res.json(responses);
   } catch (error) {
