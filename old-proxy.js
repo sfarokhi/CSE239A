@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const crypto = require("crypto");
 const fs = require("fs");
 const { AbortController } = require('abort-controller');
-const axios = require("axios"); // Use axios instead of etcd3 client
+const { Etcd3 } = require("etcd3");
 const { log } = require("console");
 
 // Function to log to file
@@ -28,6 +28,7 @@ class LRUCache {
   }
 
   set(key, value) {
+
     if (this.cache.size >= this.capacity) {
       this.cache.delete(this.cache.keys().next().value);
     }
@@ -151,9 +152,9 @@ class BSTHeap {
 
   popMin(isDummy) {
       if (isDummy === 'dummy') {
-          return this.dummyObjects.popMin()?.key || null;
+          return this.dummyObjects.popMin().key || null;
       } else {
-          return this.realObjects.popMin()?.key || null;
+          return this.realObjects.popMin().key || null;
       }
   }
 
@@ -174,7 +175,6 @@ const CACHE_SIZE = 10; // IT SHOULD BE AROUND 10-25% OF FAKE_DUMMY_REQUEST FOR P
 const BATCH_SIZE = 50; // THIS IS ALWAYS FAKE_DUMMY_REQUEST * 2
 const FAKE_DUMMY_COUNT = 25; // ALWAYS HAS TO BE AT LEAST HALF OF THE BATCH SIZE FOR SECURITY REASONS
 const TOTAL_DUMMIES = 100; // ALWAYS HAS TO BE AT LEAST DOUBLE OF FAKE_DUMMY_COUNT FOR SECURITY REASONS
-const ETCD_BASE_URL = "http://localhost:2379/v2/keys"; // Use v2 API endpoint
 
 const cache = new LRUCache(CACHE_SIZE);
 const bst = new BSTHeap();
@@ -189,42 +189,28 @@ function getIndex(key, ts) {
   return crypto.createHmac('sha256', key).update(ts.toString()).digest('hex');
 }
 
-// Encodes the key and fetches the value from etcd
 async function fetchFromEtcd(key, controller) {
-    try {
-      const encodedKey = Buffer.from(key).toString('base64');
-      const response = await axios.get(`${ETCD_BASE_URL}/${encodedKey}`, {
-        signal: controller.signal
-      });
-      if (response.data && response.data.node && response.data.node.value) {
-        return response.data.node.value;
-      }
-      return null;
-    } catch (error) {
-      if (!controller.signal.aborted) {
-        console.error(`Error fetching key ${key}:`, error.message);
-      }
-      return null;
+  try {
+    return await etcd.get(key).string();
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      console.error(`Error fetching key ${key}:`, error);
     }
+    return null;
   }
-  
-  async function writeToEtcd(key, val, controller) {
-    try {
-      const encodedKey = Buffer.from(key).toString('base64');
-      const response = await axios.put(`${ETCD_BASE_URL}/${encodedKey}`, `value=${val}`, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        signal: controller.signal
-      });
-      return response.data;
-    } catch (error) {
-      if (!controller.signal.aborted) {
-        console.error(`Error writing ${key}:`, error.message);
-      }
-      return null;
+}
+
+async function writeToEtcd(key, val, controller) {
+  try {
+    return await etcd.put(key, val).string();
+  } catch (error) {
+    if (!controller.signal.aborted) {
+      console.error(`Error writing ${key}:`, error);
     }
+    return null;
   }
+}
+
 
 async function handleRequests(requests, etcd) {
   const cliResp = {};
@@ -232,6 +218,7 @@ async function handleRequests(requests, etcd) {
   timestamp++;
 
   try {
+
     if (!Array.isArray(requests)) {
       return cliResp;
     }
@@ -242,8 +229,12 @@ async function handleRequests(requests, etcd) {
       
       // Read request
       if (op === 'read') {
+
         if (cache.has(key)) {
+          
+          // console.log('Cache Hit:', key);
           cliResp[rid] = cache.get(key);
+          
         } else {
           if (!dedupReqs.has(key)) {
             dedupReqs.set(key, []);
@@ -278,24 +269,29 @@ async function handleRequests(requests, etcd) {
     for (let i = 0; i < FAKE_DUMMY_COUNT; i++) {
       const dummyKey = bst.popMin('dummy');
       if (dummyKey) {
+        // console.log('Dummy key:', dummyKey);
+        // console.log('Dummy key timestamp:', bst.getTimestamp(dummyKey));
+
         const idx = getIndex(dummyKey, timestamp);
         readBatch.set(idx, dummyKey);
         bst.setTimestamp(dummyKey, timestamp, 'dummy');
+        // console.log('Added dummy key:', dummyKey);
       }
     }
+
+
 
     // When the batch has just been initialized, this loop will FAIL
     // There are no values in the BST yet that are not in the cache 
     const remainingSlots = BATCH_SIZE - readBatch.size;
     for (let i = 0; i < remainingSlots; i++) {
       const realKey = bst.popMin('real');
-      if (realKey) {
-        bst.setTimestamp(realKey, timestamp, 'real');
+      bst.setTimestamp(realKey, timestamp, 'real');
 
-        if (!cache.has(realKey)) {
-          const idx = getIndex(realKey, timestamp);
-          readBatch.set(idx, realKey);
-        }
+      if (realKey && !cache.has(realKey)) {
+        const idx = getIndex(realKey, timestamp);
+        readBatch.set(idx, realKey);
+        // console.log('Added real key:');
       }
     }
 
@@ -305,9 +301,11 @@ async function handleRequests(requests, etcd) {
       for (let i = 0; i < remainingSlots; i++) {
         const dummyKey = bst.popMin('dummy');
         if (dummyKey) {
+
           const idx = getIndex(dummyKey, timestamp);
           readBatch.set(idx, dummyKey);
           bst.setTimestamp(dummyKey, timestamp, 'dummy');
+          // console.log('Added dummy key:', dummyKey);
         }
       }
     }
@@ -318,8 +316,6 @@ async function handleRequests(requests, etcd) {
     logToFile(`Dedup requests: ${Array.from(dedupReqs.keys()).join(', ')}`);
     logToFile(`Read batch: ${Array.from(readBatch.values()).join(', ')}`);
 
-    // Debug log for fetch operations
-    console.log(`Fetching ${readBatch.size} keys from etcd...`);
 
     const responses = await Promise.all(
       Array.from(readBatch.entries()).map(async ([idx, key]) => {
@@ -340,6 +336,7 @@ async function handleRequests(requests, etcd) {
       if (dedupReqs.has(key)) {
         for (const { rid, need_resp } of dedupReqs.get(key)) {
           if (need_resp) {
+            // console.log('Response:', rid, val);
             cliResp[rid] = val;
           }
         }
@@ -353,10 +350,11 @@ async function handleRequests(requests, etcd) {
         } else {
           writeBatch.set(getIndex(key, timestamp), null);
         }
+
+
       }
     }
 
-    console.log(`Writing ${writeBatch.size} keys to etcd...`);
     await Promise.all(
       Array.from(writeBatch.entries()).map(([idx, val]) =>
         writeToEtcd(idx, val || '', controller)
@@ -373,6 +371,10 @@ async function handleRequests(requests, etcd) {
 const app = express();
 app.use(bodyParser.json());
 
+const etcd = new Etcd3({
+  hosts: "http://localhost:2379", // Following the default etcd port
+});
+
 // Initialize dummy objects
 for (let i = 0; i < TOTAL_DUMMIES; i++) {
   const dummyKey = `dummy_${i}`;
@@ -381,9 +383,7 @@ for (let i = 0; i < TOTAL_DUMMIES; i++) {
 
 app.all("/", async (req, res) => {
   try {
-    console.log("Received request:", JSON.stringify(req.body).substr(0, 100) + "...");
-    const responses = await handleRequests(req.body);
-    console.log("Sending response:", JSON.stringify(responses).substr(0, 100) + "...");
+    const responses = await handleRequests(req.body, etcd);
     res.json(responses);
   } catch (error) {
     console.error('Request handler error:', error);
@@ -391,4 +391,4 @@ app.all("/", async (req, res) => {
   }
 });
 
-app.listen(5000, () => console.log("Proxy running on port 5000, using etcd v2 API at", ETCD_BASE_URL));
+app.listen(5000, () => console.log("Proxy running on port 5000"));
