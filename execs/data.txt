@@ -1,27 +1,27 @@
 Benchmark data log
 
 ======= Request 1 =======
-Batch size: 19
-Data: [{"rid":"user6","op":"write","key":"Grand Prairie","val":"bnI="},{"rid":"user5","op":"read","key":"Concord","val":"Mw=="},{"rid":"user8","op":"read","key":"Indianapolis","val":"MWg="},{"rid":"user9","op":"write","key":"Brighton","val":"UQ=="},{"rid":"user1","op":"write","key":"Pittsburgh","val":"bTY="},{"rid":"user4","op":"read","key":"Kailua","val":"dFU="},{"rid":"user6","op":"read","key":"Champaign","val":"Z3pa"},{"rid":"user1","op":"write","key":"Saint Petersburg","val":"djc="},{"rid":"user6","op":"read","key":"Akron","val":"Wg=="},{"rid":"user5","op":"write","key":"Chattanooga","val":"YQ=="},{"rid":"user3","op":"write","key":"New London","val":"QzY4"},{"rid":"user9","op":"write","key":"Sacramento","val":"OHI5"},{"rid":"user6","op":"write","key":"Arvada","val":"Tko="},{"rid":"user3","op":"read","key":"Daly City","val":"MzM="},{"rid":"user8","op":"write","key":"Pomona","val":"UA=="},{"rid":"user9","op":"write","key":"Baton Rouge","val":"eg=="},{"rid":"user2","op":"read","key":"Huntington","val":"VEdE"},{"rid":"user10","op":"read","key":"Fayetteville","val":"RDBl"},{"rid":"user8","op":"write","key":"Lafayette","val":"NA=="}]
-Response: {}
+Batch size: 14
+Data: [{"rid":"user5","op":"read","key":"Detroit","val":"OTVl"},{"rid":"user10","op":"read","key":"San Francisco","val":"Mw=="},{"rid":"user7","op":"write","key":"Long Beach","val":"QXY="},{"rid":"user6","op":"write","key":"Victorville","val":"a01l"},{"rid":"user6","op":"write","key":"Hampton","val":"bg=="},{"rid":"user8","op":"write","key":"Coral Springs","val":"Qw=="},{"rid":"user2","op":"read","key":"Shreveport","val":"Tk0="},{"rid":"user5","op":"write","key":"Coral Springs","val":"OXdZ"},{"rid":"user8","op":"read","key":"Panama City","val":"U3F6"},{"rid":"user8","op":"write","key":"Glendale","val":"ZWM="},{"rid":"user4","op":"write","key":"St. Louis","val":"TWFX"},{"rid":"user6","op":"read","key":"El Monte","val":"QWI="},{"rid":"user10","op":"read","key":"Washington","val":"cHM="},{"rid":"user2","op":"read","key":"Allentown","val":"cTM="}]
+Response: {"user10":["Y2T","fN6"],"user2":["9Ag","e2F"],"user5":"dMM","user6":"C8x","user8":"0jO"}
 
 ======= Request 2 =======
-Batch size: 5
-Data: [{"rid":"user5","op":"write","key":"Winston","val":"S2Zy"},{"rid":"user2","op":"write","key":"Clarksville","val":"Zw=="},{"rid":"user5","op":"write","key":"Ogden","val":"bg=="},{"rid":"user10","op":"read","key":"GreenBay","val":"d2lX"},{"rid":"user9","op":"write","key":"Hayward","val":"Zg=="}]
-Response: {}
+Batch size: 22
+Data: [{"rid":"user1","op":"write","key":"Burbank","val":"eEs4"},{"rid":"user1","op":"read","key":"Greensboro","val":"TA=="},{"rid":"user7","op":"read","key":"Cambridge","val":"emU="},{"rid":"user6","op":"write","key":"Round Lake Beach","val":"NQ=="},{"rid":"user3","op":"read","key":"Bremerton","val":"Sjl5"},{"rid":"user1","op":"read","key":"Athens","val":"Y1c="},{"rid":"user10","op":"read","key":"Portsmouth","val":"cA=="},{"rid":"user4","op":"read","key":"Omaha","val":"Ng=="},{"rid":"user9","op":"write","key":"Santa Clara","val":"bGc3"},{"rid":"user9","op":"read","key":"Bel Air","val":"cjY="},{"rid":"user9","op":"write","key":"Vallejo","val":"TkN5"},{"rid":"user2","op":"read","key":"Glendale","val":"Wnk="},{"rid":"user5","op":"read","key":"Augusta","val":"b24="},{"rid":"user9","op":"write","key":"Toledo","val":"aw=="},{"rid":"user7","op":"read","key":"Lafayette","val":"dHJw"},{"rid":"user5","op":"write","key":"Grand Prairie","val":"cUc="},{"rid":"user5","op":"write","key":"Scottsdale","val":"RzU="},{"rid":"user1","op":"write","key":"Olympia","val":"Wg=="},{"rid":"user7","op":"read","key":"Tacoma","val":"WVBx"},{"rid":"user4","op":"write","key":"Corpus Christi","val":"OUs="},{"rid":"user5","op":"write","key":"Norman","val":"YnB3"},{"rid":"user9","op":"read","key":"Honolulu","val":"V0k="}]
+Response: {"user1":["Ewj","1s2"],"user10":"HKo","user2":"d0y","user3":"zOI","user4":"241","user5":"Tun","user7":["gE9","Dvn","4oe"],"user9":["LjS","9ZZ"]}
 
 ======= Request 3 =======
-Batch size: 16
-Data: [{"rid":"user10","op":"write","key":"Port St. Lucie","val":"NTZp"},{"rid":"user2","op":"read","key":"Dallas","val":"Sw=="},{"rid":"user2","op":"read","key":"Anchorage","val":"UQ=="},{"rid":"user9","op":"read","key":"Philadelphia","val":"SQ=="},{"rid":"user5","op":"read","key":"Tacoma","val":"Rg=="},{"rid":"user7","op":"read","key":"Lafayette","val":"Sw=="},{"rid":"user10","op":"read","key":"Hampton","val":"Uw=="},{"rid":"user4","op":"write","key":"Huntington Beach","val":"U0I0"},{"rid":"user2","op":"read","key":"Kennewick","val":"aQ=="},{"rid":"user3","op":"read","key":"Alexandria","val":"NA=="},{"rid":"user4","op":"read","key":"Lorain","val":"bA=="},{"rid":"user4","op":"read","key":"Tempe","val":"Q0M="},{"rid":"user9","op":"read","key":"Omaha","val":"cUcx"},{"rid":"user2","op":"write","key":"El Monte","val":"Wg=="},{"rid":"user5","op":"write","key":"Peoria","val":"MXM="},{"rid":"user8","op":"read","key":"Greensboro","val":"Vw=="}]
-Response: {"user7":"NA=="}
+Batch size: 6
+Data: [{"rid":"user1","op":"read","key":"Memphis","val":"WjU="},{"rid":"user3","op":"write","key":"Champaign","val":"bEs="},{"rid":"user4","op":"read","key":"Tucson","val":"U1U="},{"rid":"user4","op":"read","key":"Marysville","val":"ag=="},{"rid":"user7","op":"read","key":"College Station","val":"b01V"},{"rid":"user7","op":"write","key":"Reno","val":"Z0U="}]
+Response: {"user1":"qwS","user4":["kJS","raH"],"user7":"u54"}
 
 ======= Request 4 =======
-Batch size: 18
-Data: [{"rid":"user9","op":"write","key":"Champaign","val":"NFk="},{"rid":"user1","op":"read","key":"Montgomery","val":"b1Yy"},{"rid":"user3","op":"write","key":"Bloomington","val":"OFdG"},{"rid":"user5","op":"read","key":"Provo","val":"dGlQ"},{"rid":"user2","op":"write","key":"Dayton","val":"Y3U2"},{"rid":"user1","op":"read","key":"Killeen","val":"Nw=="},{"rid":"user8","op":"write","key":"Burlington","val":"WE4="},{"rid":"user1","op":"write","key":"Flint","val":"cVlF"},{"rid":"user10","op":"write","key":"Naperville","val":"N1k="},{"rid":"user9","op":"read","key":"Santa Cruz","val":"bVA2"},{"rid":"user6","op":"read","key":"Vero Beach","val":"MGJZ"},{"rid":"user5","op":"write","key":"Santa Clara","val":"cA=="},{"rid":"user2","op":"read","key":"Brighton","val":"WmxY"},{"rid":"user5","op":"read","key":"Bethlehem","val":"eG1M"},{"rid":"user6","op":"write","key":"Norwich","val":"dQ=="},{"rid":"user8","op":"write","key":"Poughkeepsie","val":"TEo="},{"rid":"user1","op":"read","key":"St. Louis","val":"Yg=="},{"rid":"user6","op":"write","key":"Columbia","val":"QXI="}]
-Response: {"user2":"UQ=="}
+Batch size: 5
+Data: [{"rid":"user1","op":"read","key":"Peoria","val":"Rw=="},{"rid":"user6","op":"write","key":"Alexandria","val":"dA=="},{"rid":"user5","op":"write","key":"Stockton","val":"Tlh3"},{"rid":"user7","op":"read","key":"Fort Collins","val":"U1Ix"},{"rid":"user8","op":"read","key":"Salem","val":"eXU="}]
+Response: {"user1":"FbA","user7":"sNF","user8":"gNx"}
 
 ======= Request 5 =======
-Batch size: 11
-Data: [{"rid":"user10","op":"read","key":"Alexandria","val":"SA=="},{"rid":"user3","op":"write","key":"Tulsa","val":"UA=="},{"rid":"user2","op":"read","key":"Jacksonville","val":"UVNk"},{"rid":"user3","op":"write","key":"Rancho Cucamonga","val":"d0Va"},{"rid":"user8","op":"write","key":"Sioux City","val":"eg=="},{"rid":"user1","op":"read","key":"Newark","val":"WUs="},{"rid":"user5","op":"read","key":"Provo","val":"bGI="},{"rid":"user1","op":"read","key":"Lafayette","val":"RQ=="},{"rid":"user1","op":"write","key":"Layton","val":"MDU="},{"rid":"user3","op":"write","key":"Lewisville","val":"Zg=="},{"rid":"user9","op":"write","key":"Lorain","val":"WnFw"}]
-Response: {"user1":"NA=="}
-Runtime: 5.248429871 seconds
+Batch size: 13
+Data: [{"rid":"user10","op":"write","key":"Oklahoma City","val":"d0Q3"},{"rid":"user3","op":"write","key":"Normal","val":"eGZR"},{"rid":"user5","op":"read","key":"Fargo","val":"Vw=="},{"rid":"user3","op":"read","key":"Asheville","val":"N0k4"},{"rid":"user8","op":"write","key":"Hollywood","val":"NXM="},{"rid":"user5","op":"read","key":"Bradenton","val":"WQ=="},{"rid":"user10","op":"read","key":"Columbia","val":"RFBn"},{"rid":"user6","op":"write","key":"Murfreesboro","val":"NQ=="},{"rid":"user6","op":"write","key":"Pembroke Pines","val":"NDdD"},{"rid":"user3","op":"read","key":"Columbus","val":"WHVi"},{"rid":"user2","op":"write","key":"Kaneohe","val":"R0M="},{"rid":"user1","op":"write","key":"St. Paul","val":"Ng=="},{"rid":"user1","op":"write","key":"Lincoln","val":"YUVz"}]
+Response: {"user10":"oil","user3":["LD8","923"],"user5":["T42","yue"]}
+Runtime: 5.430484952 seconds
