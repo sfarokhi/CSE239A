@@ -4,7 +4,7 @@
 start=$(date +%s.%N)
 
 # Configuration parameters
-NUM_REQUESTS=3         # Number of requests to send (up to 25 for security purposes)
+NUM_REQUESTS=1         # Number of requests to send (up to 25 for security purposes)
 MAX_BATCH_SIZE=25      # Maximum number of operations per batch
 MAX_VAL_SIZE=3         # Maximum value size in bytes
 

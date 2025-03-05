@@ -1,0 +1,7 @@
+Benchmark data log
+
+======= Request 1 =======
+Batch size: 12
+Data: [{"rid":"user1","op":"read","key":"Buffalo","val":"Ng=="},{"rid":"user6","op":"read","key":"Lansing","val":"SzA="},{"rid":"user9","op":"write","key":"New Orleans","val":"a2lk"},{"rid":"user7","op":"write","key":"Albany","val":"QVE="},{"rid":"user10","op":"write","key":"San Bernardino","val":"Rw=="},{"rid":"user7","op":"read","key":"Knoxville","val":"ag=="},{"rid":"user1","op":"write","key":"Buffalo","val":"Qw=="},{"rid":"user4","op":"read","key":"Evansville","val":"Y04="},{"rid":"user5","op":"read","key":"Melbourne","val":"cVVG"},{"rid":"user1","op":"read","key":"Layton","val":"aVQ="},{"rid":"user4","op":"write","key":"Racine","val":"RWN2"},{"rid":"user2","op":"read","key":"Cary","val":"T3Y="}]
+Response: {}
+Runtime: .124323468 seconds
