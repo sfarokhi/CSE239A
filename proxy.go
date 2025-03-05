@@ -455,7 +455,6 @@ func handleRequests(requests []Request, etcdClient *clientv3.Client) map[string]
 	}
 
 	log.Printf("Dedup requests: %v", getMapKeys(dedupReqs))
-	log.Printf("Read batch: %v", getMapValues(readBatch))
 
 	// Fetch from etcd
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -475,7 +474,6 @@ func handleRequests(requests []Request, etcdClient *clientv3.Client) map[string]
 				log.Printf("Error fetching key %s: %v", key, err)
 				return
 			}
-
 			if len(resp.Kvs) > 0 {
 				responseMutex.Lock()
 				responses[idx] = string(resp.Kvs[0].Value)
@@ -488,7 +486,6 @@ func handleRequests(requests []Request, etcdClient *clientv3.Client) map[string]
 
 	// Process responses and prepare write batch
 	writeBatch := make(map[string]string)
-	log.Printf("Responses: %v", responses)
 	for idx, val := range responses {
 		key := readBatch[idx]
 

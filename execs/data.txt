@@ -1,7 +1,27 @@
 Benchmark data log
 
 ======= Request 1 =======
-Batch size: 12
-Data: [{"rid":"user1","op":"read","key":"Buffalo","val":"Ng=="},{"rid":"user6","op":"read","key":"Lansing","val":"SzA="},{"rid":"user9","op":"write","key":"New Orleans","val":"a2lk"},{"rid":"user7","op":"write","key":"Albany","val":"QVE="},{"rid":"user10","op":"write","key":"San Bernardino","val":"Rw=="},{"rid":"user7","op":"read","key":"Knoxville","val":"ag=="},{"rid":"user1","op":"write","key":"Buffalo","val":"Qw=="},{"rid":"user4","op":"read","key":"Evansville","val":"Y04="},{"rid":"user5","op":"read","key":"Melbourne","val":"cVVG"},{"rid":"user1","op":"read","key":"Layton","val":"aVQ="},{"rid":"user4","op":"write","key":"Racine","val":"RWN2"},{"rid":"user2","op":"read","key":"Cary","val":"T3Y="}]
+Batch size: 2
+Data: [{"rid":"user1","op":"write","key":"Detroit","val":"Yw=="},{"rid":"user9","op":"write","key":"Norman","val":"eHNj"}]
 Response: {}
-Runtime: .124323468 seconds
+
+======= Request 2 =======
+Batch size: 3
+Data: [{"rid":"user5","op":"read","key":"Kalamazoo","val":"Uk4="},{"rid":"user8","op":"write","key":"Burlington","val":"cGU="},{"rid":"user1","op":"write","key":"Lexington","val":"WUU="}]
+Response: {"user5":"RVt"}
+
+======= Request 3 =======
+Batch size: 17
+Data: [{"rid":"user3","op":"write","key":"Modesto","val":"NA=="},{"rid":"user8","op":"read","key":"Racine","val":"V24w"},{"rid":"user6","op":"write","key":"Howell","val":"N2c="},{"rid":"user2","op":"write","key":"Concord","val":"aFM="},{"rid":"user9","op":"read","key":"St. Louis","val":"dkM="},{"rid":"user10","op":"read","key":"Roseville","val":"YU1m"},{"rid":"user10","op":"write","key":"Palmdale","val":"MTNQ"},{"rid":"user7","op":"write","key":"Sunnyvale","val":"ZGs="},{"rid":"user2","op":"read","key":"Ontario","val":"bks="},{"rid":"user1","op":"read","key":"Barnstable","val":"TWha"},{"rid":"user9","op":"read","key":"Amarillo","val":"OUc1"},{"rid":"user8","op":"write","key":"Carrollton","val":"dWg3"},{"rid":"user2","op":"write","key":"St. Paul","val":"UXc="},{"rid":"user1","op":"read","key":"Burbank","val":"MQ=="},{"rid":"user8","op":"read","key":"Miramar","val":"aQ=="},{"rid":"user3","op":"read","key":"Harlingen","val":"clc="},{"rid":"user3","op":"read","key":"Vancouver","val":"Wg=="}]
+Response: {"user1":["PGh","Chg"],"user10":"Hg1","user2":"NM1","user3":["7ab","EYh"],"user8":["zpW","DSg"],"user9":["wDN","ILN"]}
+
+======= Request 4 =======
+Batch size: 18
+Data: [{"rid":"user7","op":"write","key":"Carrollton","val":"NQ=="},{"rid":"user1","op":"write","key":"Mesa","val":"ZDg1"},{"rid":"user7","op":"write","key":"Fort Lauderdale","val":"cnRp"},{"rid":"user3","op":"read","key":"Manchester","val":"NzY="},{"rid":"user10","op":"read","key":"Birmingham","val":"MGI="},{"rid":"user1","op":"read","key":"Independence","val":"NG81"},{"rid":"user10","op":"write","key":"Burbank","val":"VA=="},{"rid":"user10","op":"read","key":"Oceanside","val":"cFc="},{"rid":"user1","op":"write","key":"Abilene","val":"Ug=="},{"rid":"user8","op":"read","key":"Sarasota","val":"SGc="},{"rid":"user10","op":"write","key":"Nashville","val":"WXhM"},{"rid":"user6","op":"write","key":"Norman","val":"Z0Y="},{"rid":"user3","op":"write","key":"Bel Air","val":"UVc="},{"rid":"user1","op":"write","key":"Asheville","val":"eQ=="},{"rid":"user8","op":"write","key":"Port Orange","val":"YWU="},{"rid":"user5","op":"write","key":"Overland Park","val":"eA=="},{"rid":"user7","op":"write","key":"Palmdale","val":"bDk="},{"rid":"user4","op":"write","key":"Gainesville","val":"MHY="}]
+Response: {"user1":"eeM","user10":["922","pyA"],"user3":"xKP","user8":"F1c"}
+
+======= Request 5 =======
+Batch size: 7
+Data: [{"rid":"user2","op":"write","key":"Aberdeen","val":"c1Y="},{"rid":"user3","op":"write","key":"Cambridge","val":"Zg=="},{"rid":"user9","op":"read","key":"Torrance","val":"dEM="},{"rid":"user1","op":"write","key":"Fresno","val":"Zw=="},{"rid":"user2","op":"read","key":"Barnstable","val":"Sw=="},{"rid":"user3","op":"write","key":"Santa Clara","val":"bQ=="},{"rid":"user9","op":"read","key":"Roseville","val":"NA=="}]
+Response: {"user2":"Chg","user9":["Hg1","CsS"]}
+Runtime: 4.374535544 seconds

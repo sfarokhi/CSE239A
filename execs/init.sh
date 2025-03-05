@@ -15,10 +15,12 @@ for ((i=0; i<MAX_UPLOADED_VALUES && i<${#KEYS[@]}; i++)); do
     
     # Generate a random value (alphanumeric)
     VALUE=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c $MAX_VAL_SIZE)
-
-    # JSON payload for etcd, using its default port value
-    RESPONSE=$(curl -X PUT "http://127.0.0.1:2379/v2/keys/$(echo -n "$KEY" | base64)" -d "value=$VALUE")
-
+    
+    # JSON payload for etcd v3 API
+    RESPONSE=$(curl -X POST http://127.0.0.1:2379/v3/kv/put \
+        -H "Content-Type: application/json" \
+        --data-binary "{\"key\":\"$(echo -n "$KEY" | base64)\",\"value\":\"$(echo -n "$VALUE" | base64)\"}")
+    
     # Log response
     echo "Initialized $KEY with $VALUE: $RESPONSE"
 done
