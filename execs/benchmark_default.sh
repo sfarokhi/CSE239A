@@ -20,7 +20,7 @@ done < "keys.txt"
 USERS=("user1" "user2" "user3" "user4" "user5" "user6" "user7" "user8" "user9" "user10")
 
 # Target URL
-URL="http://localhost:5000"
+URL="http://localhost:2379"
 
 # Clear data file at the start
 echo "Benchmark data log" > data.txt
@@ -78,4 +78,4 @@ done
 end=$(date +%s.%N)
 runtime=$(echo $end - $start | bc)
 echo "The benchmark's runtime was $runtime seconds."
-echo "Runtime: $runtime seconds" >> data.txt
+echo "Runtime: $runtime seconds" >> data_default.txt

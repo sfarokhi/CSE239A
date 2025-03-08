@@ -57,16 +57,28 @@ curl -s -X POST http://localhost:5000   -H "Content-Type: application/json"   -d
 curl -s -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '[{"rid": "1", "op": "write", "key": "foo", "val": "bar"}]'
 ```
 
-### Running the benchmarks (testing code)
+### Running the benchmarks for the Waffle proxy (testing code)
 
-Third Terminal Session (the benchmark's data log file is in `execs/data.txt`):
+Third Terminal Session (the benchmark's data log file is in `execs/data_waffle.txt`):
 
 ```bash
 cd execs/
 sudo chmod +x init.sh
-sudo chmod +x benchmark.sh
+sudo chmod +x benchmark_waffle.sh
 ./init.sh
-./benchmark.sh
+./benchmark_waffle.sh
+```
+
+### Running the benchmarks without the Waffle proxy (testing code)
+
+Second Terminal Session (the benchmark's data log file is in `execs/data_default.txt`):
+
+```bash
+cd execs/
+sudo chmod +x init.sh
+sudo chmod +x benchmark_default.sh
+./init.sh
+./benchmark_default.sh
 ```
 
 ## License
