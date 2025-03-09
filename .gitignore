@@ -1,3 +1,2 @@
-/node_modules
-/etcd-local.etcd\member
+node_modules
 default.etcd/

@@ -3,27 +3,72 @@
 # The performance benchmarking requires `bc` to be installed locally
 start=$(date +%s.%N)
 
-# Configuration parameters
-NUM_REQUESTS=5         # Number of requests to send (up to 25 for security purposes)
+# Default configuration parameters
+NUM_REQUESTS=5         # Number of requests to send
 MAX_BATCH_SIZE=25      # Maximum number of operations per batch
 MAX_VAL_SIZE=3         # Maximum value size in bytes
+READ_PERCENTAGE=50     # Default: 50% reads, 50% writes
+
+# Process command line arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -n|--num-requests)
+      NUM_REQUESTS="$2"
+      shift 2
+      ;;
+    -b|--batch-size)
+      MAX_BATCH_SIZE="$2"
+      shift 2
+      ;;
+    -v|--val-size)
+      MAX_VAL_SIZE="$2"
+      shift 2
+      ;;
+    -r|--read-percentage)
+      READ_PERCENTAGE="$2"
+      shift 2
+      ;;
+    -h|--help)
+      echo "Usage: $0 [options]"
+      echo "Options:"
+      echo "  -n, --num-requests NUM      Number of requests to send (default: 5)"
+      echo "  -b, --batch-size MAX        Maximum operations per batch (default: 25)"
+      echo "  -v, --val-size MAX          Maximum value size in bytes (default: 3)"
+      echo "  -r, --read-percentage PCT   Percentage of read operations (default: 50)"
+      echo "  -h, --help                  Show this help message"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Use --help for usage information"
+      exit 1
+      ;;
+  esac
+done
+
+# Validate read percentage
+if [ "$READ_PERCENTAGE" -lt 0 ] || [ "$READ_PERCENTAGE" -gt 100 ]; then
+  echo "Error: Read percentage must be between 0 and 100"
+  exit 1
+fi
 
 # Possible operation types
-OPS=("read" "write")
+# OPS=("read" "write")
 
 # Read keys from file, each on a new line
 KEYS=()
 while IFS= read -r line; do
     KEYS+=("$line")
-done < "keys.txt"
+done < "medium_keys.txt"
 
 USERS=("user1" "user2" "user3" "user4" "user5" "user6" "user7" "user8" "user9" "user10")
 
 # Target URL
-URL="http://localhost:2379"
+URL="http://localhost:5000"
 
 # Clear data file at the start
-echo "Benchmark data log" > data.txt
+echo "Benchmark data log" > waffle_data.txt
+echo "Configuration: $NUM_REQUESTS requests, max batch size $MAX_BATCH_SIZE, read percentage $READ_PERCENTAGE%" >> waffle_data.txt
 
 for ((i=1; i<=NUM_REQUESTS; i++)); do
     # Determine batch size for this request (between 1 and MAX_BATCH_SIZE)
@@ -33,13 +78,19 @@ for ((i=1; i<=NUM_REQUESTS; i++)); do
     DATA="["
     
     for ((j=1; j<=BATCH_SIZE; j++)); do
-        # Generate random key and operation
+        # Determine operation based on read percentage
+        RAND=$((RANDOM % 100 + 1))
+        if [ $RAND -le $READ_PERCENTAGE ]; then
+            OP="read"
+        else
+            OP="write"
+        fi
+        
+        # Generate random key and user
         KEY=${KEYS[$RANDOM % ${#KEYS[@]}]}
-        OP=${OPS[$RANDOM % ${#OPS[@]}]}
         USER=${USERS[$RANDOM % ${#USERS[@]}]}
         
-        # Fixed value generation - using only alphanumeric characters
-        # Generate a simpler random string with no special characters
+        # Generate value (only needed for writes, but generate anyway)
         VAL_SIZE=$((1 + RANDOM % MAX_VAL_SIZE))
         VAL=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c $VAL_SIZE | base64)
         
@@ -59,23 +110,24 @@ for ((i=1; i<=NUM_REQUESTS; i++)); do
     
     DATA+="]"
     
-    # Log request information to data.txt with append (>>)
-    echo -e "\n======= Request $i =======" >> data.txt
-    echo "Batch size: $BATCH_SIZE" >> data.txt
-    echo "Data: $DATA" >> data.txt
+    # Log request information to waffle_data.txt with append (>>)
+    echo -e "\n======= Request $i =======" >> waffle_data.txt
+    echo "Batch size: $BATCH_SIZE" >> waffle_data.txt
+    echo "Data: $DATA" >> waffle_data.txt
     
     # Send curl request and capture response
     RESPONSE=$(curl -s -X POST "$URL" -H "Content-Type: application/json" -d "$DATA")
     
     # Log response
-    echo "Response: $RESPONSE" >> data.txt
+    echo "Response: $RESPONSE" >> waffle_data.txt
     
     echo "Request $i sent with batch size: $BATCH_SIZE"
-    sleep 1 # Optional delay between requests
 done
 
-# Highly accurate performance benchmarking in seconds
+# Performance benchmarking in seconds
 end=$(date +%s.%N)
-runtime=$(echo $end - $start | bc)
+runtime=$(echo "$end - $start" | bc)
+
 echo "The benchmark's runtime was $runtime seconds."
-echo "Runtime: $runtime seconds" >> data_default.txt
+echo "Runtime: $runtime seconds" >> waffle_data.txt
+echo "Final configuration: $NUM_REQUESTS requests, read percentage $READ_PERCENTAGE%" >> waffle_data.txt

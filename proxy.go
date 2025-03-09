@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,10 +15,13 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-const (
-	BATCH_SIZE       = 50
-	FAKE_DUMMY_COUNT = 25
-	TOTAL_DUMMIES    = 100
+// Global variables
+var (
+	cache        *LRUCache
+	bst          *BSTHeap
+	batchSize    int
+	dummyCount   int
+	totalDummies int
 )
 
 // Request structure
@@ -417,7 +421,7 @@ func handleRequests(requests []Request, etcdClient *clientv3.Client) map[string]
 	}
 
 	// Fill with dummy queries
-	for i := 0; i < FAKE_DUMMY_COUNT; i++ {
+	for i := 0; i < dummyCount; i++ {
 		dummyKey := bst.PopMin("dummy")
 		if dummyKey != "" {
 			idx := getIndex(dummyKey, timestamp)
@@ -427,7 +431,7 @@ func handleRequests(requests []Request, etcdClient *clientv3.Client) map[string]
 	}
 
 	// Add real objects to fill batch
-	remainingSlots := BATCH_SIZE - len(readBatch)
+	remainingSlots := batchSize - len(readBatch)
 	for i := 0; i < remainingSlots; i++ {
 		realKey := bst.PopMin("real")
 		// Edge case: When the proxy first boots, this won't work
@@ -442,8 +446,8 @@ func handleRequests(requests []Request, etcdClient *clientv3.Client) map[string]
 	}
 
 	// Add more dummy objects if needed
-	if len(readBatch) < BATCH_SIZE {
-		remainingSlots = BATCH_SIZE - len(readBatch)
+	if len(readBatch) < batchSize {
+		remainingSlots = batchSize - len(readBatch)
 		for i := 0; i < remainingSlots; i++ {
 			dummyKey := bst.PopMin("dummy")
 			if dummyKey != "" {
@@ -534,12 +538,6 @@ func handleRequests(requests []Request, etcdClient *clientv3.Client) map[string]
 	return result
 }
 
-// Global variables
-var (
-	cache = NewLRUCache(100)
-	bst   = NewBSTHeap()
-)
-
 func getMapKeys(m map[string][]DedupRequest) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -548,17 +546,22 @@ func getMapKeys(m map[string][]DedupRequest) []string {
 	return keys
 }
 
-func getMapValues(m map[string]string) []string {
-	values := make([]string, 0, len(m))
-	for _, v := range m {
-		values = append(values, v)
-	}
-	return values
-}
-
 func main() {
+
+	extractedCacheSize := flag.Int("cache", 100, "Cache size")
+	extractedBatchSize := flag.Int("batch", 100, "Batch size")
+	extractedTotalDummies := flag.Int("dummies", 100, "Total dummy objects")
+	flag.Parse()
+
+	// Initialize global variables
+	cache = NewLRUCache(*extractedCacheSize)
+	bst = NewBSTHeap()
+	batchSize = *extractedBatchSize
+	dummyCount = batchSize / 2
+	totalDummies = *extractedTotalDummies
+
 	// Initialize dummy objects
-	for i := 0; i < TOTAL_DUMMIES; i++ {
+	for i := 0; i < totalDummies; i++ {
 		dummyKey := fmt.Sprintf("dummy_%d", i)
 		bst.AddObject(dummyKey, "dummy")
 	}

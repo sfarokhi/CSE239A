@@ -37,7 +37,8 @@ go mod tidy
 ### Starting the server and proxy
 
 First Terminal Session:
-
+NOTE: Must be using Version 3.5 (latest) of etcd
+Or a version that supports the v3 API
 ```bash
 etcd
 ```
@@ -49,37 +50,45 @@ gvm use go1.22.1
 go run proxy.go
 ```
 
-### GET/PUT Request Formats
+### Running the benchmarks for the Waffle proxy (testing code)
 
+Third Terminal Session (the benchmark's data log file is in `execs/data_waffle.txt`):
+
+First, set up the shell scripts
+```bash
+cd execs/
+sudo chmod +x init.sh
+sudo chmod +x benchmark_waffle.sh
+```
+
+Then, we init the database with the txt file and the number of values to input (defaults to the entire file)
+```bash
+./init.sh <small_keys.txt | medium_keys.txt | large_keys.txt> <MAX_VALUES>
+```
+
+Lastly, we run the benchmark, using either the proxy or the native etcd
+```bash
+./benchmark_waffle.sh
+./benchmark_default.sh
+```
+
+
+This is the format that the curl requests must adhere to in order to use the proxy:
+
+
+### GET/PUT Request Formats
+```json
+data: [
+    {"rid", "op", "key", "val"}
+]
+```
 ```bash
 curl -s -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '[{"rid": "1", "op": "read", "key": "foo"}]'
 curl -s -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '[{"rid": "1", "op": "read", "key": "foo"},{"rid": "2", "op": "read", "key": "bar"}]'
 curl -s -X POST http://localhost:5000   -H "Content-Type: application/json"   -d '[{"rid": "1", "op": "write", "key": "foo", "val": "bar"}]'
 ```
 
-### Running the benchmarks for the Waffle proxy (testing code)
 
-Third Terminal Session (the benchmark's data log file is in `execs/data_waffle.txt`):
-
-```bash
-cd execs/
-sudo chmod +x init.sh
-sudo chmod +x benchmark_waffle.sh
-./init.sh
-./benchmark_waffle.sh
-```
-
-### Running the benchmarks without the Waffle proxy (testing code)
-
-Second Terminal Session (the benchmark's data log file is in `execs/data_default.txt`):
-
-```bash
-cd execs/
-sudo chmod +x init.sh
-sudo chmod +x benchmark_default.sh
-./init.sh
-./benchmark_default.sh
-```
 
 ## License
 
