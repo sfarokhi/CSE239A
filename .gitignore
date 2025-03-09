@@ -1,2 +1,4 @@
 default.etcd
 etcd-local.etcd
+execs/waffle_data.txt
+execs/default_data.txt
