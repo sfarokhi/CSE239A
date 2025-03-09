@@ -67,8 +67,8 @@ USERS=("user1" "user2" "user3" "user4" "user5" "user6" "user7" "user8" "user9" "
 URL="http://localhost:5000"
 
 # Clear data file at the start
-echo "Benchmark data log" > waffle_data.txt
-echo "Configuration: $NUM_REQUESTS requests, max batch size $MAX_BATCH_SIZE, read percentage $READ_PERCENTAGE%" >> waffle_data.txt
+echo "Benchmark data log" > default_data.txt
+echo "Configuration: $NUM_REQUESTS requests, max batch size $MAX_BATCH_SIZE, read percentage $READ_PERCENTAGE%" >> default_data.txt
 
 for ((i=1; i<=NUM_REQUESTS; i++)); do
     # Determine batch size for this request (between 1 and MAX_BATCH_SIZE)
@@ -110,16 +110,16 @@ for ((i=1; i<=NUM_REQUESTS; i++)); do
     
     DATA+="]"
     
-    # Log request information to waffle_data.txt with append (>>)
-    echo -e "\n======= Request $i =======" >> waffle_data.txt
-    echo "Batch size: $BATCH_SIZE" >> waffle_data.txt
-    echo "Data: $DATA" >> waffle_data.txt
+    # Log request information to default_data.txt with append (>>)
+    echo -e "\n======= Request $i =======" >> default_data.txt
+    echo "Batch size: $BATCH_SIZE" >> default_data.txt
+    echo "Data: $DATA" >> default_data.txt
     
     # Send curl request and capture response
     RESPONSE=$(curl -s -X POST "$URL" -H "Content-Type: application/json" -d "$DATA")
     
     # Log response
-    echo "Response: $RESPONSE" >> waffle_data.txt
+    echo "Response: $RESPONSE" >> default_data.txt
     
     echo "Request $i sent with batch size: $BATCH_SIZE"
 done
@@ -129,5 +129,5 @@ end=$(date +%s.%N)
 runtime=$(echo "$end - $start" | bc)
 
 echo "The benchmark's runtime was $runtime seconds."
-echo "Runtime: $runtime seconds" >> waffle_data.txt
-echo "Final configuration: $NUM_REQUESTS requests, read percentage $READ_PERCENTAGE%" >> waffle_data.txt
+echo "Runtime: $runtime seconds" >> default_data.txt
+echo "Final configuration: $NUM_REQUESTS requests, read percentage $READ_PERCENTAGE%" >> default_data.txt
