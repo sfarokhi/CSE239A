@@ -1,2 +1,2 @@
-node_modules
-default.etcd/
+default.etcd
+etcd-local.etcd
